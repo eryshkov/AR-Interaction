@@ -11,8 +11,10 @@ import SceneKit
 import ARKit
 
 class ViewController: UIViewController, ARSCNViewDelegate {
-
+    
     @IBOutlet var sceneView: ARSCNView!
+    
+    var hoopAdded = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -36,7 +38,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Create a session configuration
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = .vertical
-
+        
         // Run the view's session
         sceneView.session.run(configuration)
     }
@@ -59,7 +61,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         sceneView.scene.rootNode.addChildNode(hoopNode)
     }
-
+    
     // MARK: - ARSCNViewDelegate
     
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
@@ -114,16 +116,33 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         return node
     }
     
+    func createBasketball() {
+        guard let frame = sceneView.session.currentFrame else { return }
+        
+        let ball = SCNNode(geometry: SCNSphere(radius: 0.25))
+        ball.geometry?.firstMaterial?.diffuse.contents = UIColor.orange
+        
+        ball.transform = SCNMatrix4(frame.camera.transform)
+        sceneView.scene.rootNode.addChildNode(ball)
+        
+        
+    }
+    
     // MARK: - IBActions
     
     @IBAction func screenTapped(_ sender: UITapGestureRecognizer) {
-        let touchLocation = sender.location(in: sceneView)
-        let hitTestResult = sceneView.hitTest(touchLocation, types: [.existingPlaneUsingExtent])
-        
-        if let result = hitTestResult.first {
-//            print("Пересеклись с поверхностью")
-            addHoop(result: result)
+        if !hoopAdded {
+            let touchLocation = sender.location(in: sceneView)
+            let hitTestResult = sceneView.hitTest(touchLocation, types: [.existingPlaneUsingExtent])
+            
+            if let result = hitTestResult.first {
+                //            print("Пересеклись с поверхностью")
+                addHoop(result: result)
+                hoopAdded = true
+            }
+        }else{
+            createBasketball()
         }
+        
     }
-    
 }
