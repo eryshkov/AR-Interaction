@@ -15,6 +15,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     @IBOutlet var sceneView: ARSCNView!
     
     var hoopAdded = false
+    let wallName = "wall" //name of the wall
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -51,22 +52,43 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     func addHoop(result: ARHitTestResult) {
-        let hoopScene = SCNScene(named: "art.scnassets/hoop.scn")!
+        let hoopScene = SCNScene(named: "art.scnassets/hoop.scn")
         
-        guard let hoopNode = hoopScene.rootNode.childNode(withName: "Hoop", recursively: false) else { return }
+        guard let hoopNode = hoopScene?.rootNode.childNode(
+            withName: "Hoop", recursively: false
+            ) else { return }
         
-        let position = result.worldTransform.columns.3
+        hoopNode.simdTransform = result.worldTransform
+        hoopNode.eulerAngles.x -=  .pi / 2
         
-        hoopNode.physicsBody = SCNPhysicsBody(type: .static, shape: SCNPhysicsShape(node: hoopNode, options: [SCNPhysicsShape.Option.type:SCNPhysicsShape.ShapeType.concavePolyhedron]))
-        
-        hoopNode.position = SCNVector3(position.x, position.y, position.z)
+        hoopNode.physicsBody = SCNPhysicsBody(
+            type: .static,
+            shape: SCNPhysicsShape(
+                node: hoopNode,
+                options: [
+                    SCNPhysicsShape.Option.type:
+                        SCNPhysicsShape.ShapeType.concavePolyhedron
+                ]
+            )
+        )
         
         sceneView.scene.rootNode.addChildNode(hoopNode)
+        
+        if let wall = sceneView.scene.rootNode.childNode(withName: wallName, recursively: true) {
+            wall.removeFromParentNode()
+            print("Node removed")
+            if let wallAnchor = sceneView.anchor(for: wall) {
+                sceneView.session.remove(anchor: wallAnchor)
+                print("Anchor removed")
+            }
+        }
+        
     }
     
     // MARK: - ARSCNViewDelegate
     
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        guard !hoopAdded else { return}
         guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
         
         //        print(#function, planeAnchor)
@@ -77,6 +99,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+        guard !hoopAdded else { return}
         guard let planeAnchor = anchor as? ARPlaneAnchor,
             let floor = node.childNodes.first,
             let geometry = floor.geometry as? SCNPlane
@@ -111,7 +134,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         let node = SCNNode()
         node.geometry = geometry
-        
+        node.name = wallName
         node.opacity = 0.25
         node.eulerAngles.x = -Float.pi / 2
         
