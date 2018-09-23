@@ -15,7 +15,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     @IBOutlet var sceneView: ARSCNView!
     
     var hoopAdded = false
+    var wallFound = false
     let wallName = "wall" //name of the wall
+    
+    var balls = [SCNNode]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -77,25 +80,30 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         if let wall = sceneView.scene.rootNode.childNode(withName: wallName, recursively: true) {
             wall.removeFromParentNode()
             print("Node removed")
-            if let wallAnchor = sceneView.anchor(for: wall) {
-                sceneView.session.remove(anchor: wallAnchor)
-                print("Anchor removed")
-            }
         }
         
     }
     
     // MARK: - ARSCNViewDelegate
     
+    func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        for (index, ball) in balls.enumerated() {
+            if ball.presentation.position.y < -5 { //remooves the ball
+                ball.removeFromParentNode()
+                balls.remove(at: index)
+            }
+        }
+    }
+    
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
-        guard !hoopAdded else { return}
+        guard !hoopAdded, !wallFound else { return}
         guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
         
         //        print(#function, planeAnchor)
         
         let floor = createWall(planeAnchor: planeAnchor)
         node.addChildNode(floor)
-        
+        wallFound = true
     }
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
@@ -108,7 +116,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         geometry.height = CGFloat(planeAnchor.extent.z)
         
         floor.position = SCNVector3(planeAnchor.center.x, 0, planeAnchor.center.z)
-        
     }
     
     func session(_ session: ARSession, didFailWithError error: Error) {
@@ -162,7 +169,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         ball.transform = transform
         sceneView.scene.rootNode.addChildNode(ball)
         
-        
+        balls.append(ball)
     }
     
     // MARK: - IBActions
